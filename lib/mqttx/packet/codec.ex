@@ -804,6 +804,14 @@ defmodule MqttX.Packet.Codec do
     {:ok, 0, %{}}
   end
 
+  # §3.4.2.2.1 (and its PUBREC/PUBREL/PUBCOMP siblings): with a Remaining
+  # Length under 4 there is no Property Length, and 0 is meant. Mosquitto sends
+  # exactly that for a reason code without properties, e.g. 0x10 No matching
+  # subscribers.
+  defp decode_ack_payload(5, <<reason_code::8>>) do
+    {:ok, reason_code, %{}}
+  end
+
   defp decode_ack_payload(5, <<reason_code::8, rest::binary>>) do
     case Properties.decode(5, rest) do
       {:ok, props, <<>>} -> {:ok, reason_code, props}

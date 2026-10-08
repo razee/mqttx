@@ -203,6 +203,15 @@ defmodule MqttX.Packet.CodecTest do
       assert decoded.type == :puback
       assert decoded.packet_id == 5678
     end
+
+    # §3.4.2.2.1: a Remaining Length under 4 carries no Property Length. This
+    # is what Mosquitto sends for a QoS 1 publish nobody is subscribed to.
+    test "decodes a v5 ack with a reason code and no property length" do
+      for {type, first} <- [puback: 0x40, pubrec: 0x50, pubrel: 0x62, pubcomp: 0x70] do
+        assert {:ok, {decoded, <<>>}} = Codec.decode(5, <<first, 3, 0x00, 0x02, 0x10>>)
+        assert decoded == %{type: type, packet_id: 2, reason_code: 0x10, properties: %{}}
+      end
+    end
   end
 
   describe "SUBSCRIBE packet" do
